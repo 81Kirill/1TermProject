@@ -1,9 +1,11 @@
+import random
+
 import pygame
 from random import randint
 pygame.init()
 
-WIDTH, HEIDTH = 800, 800
-widt, heit = 470,700
+WIDTH, HEIDTH = 800, 900
+widt, heit = 520,800
 rad = 15
 FPS = 60
 class Ball:
@@ -12,6 +14,8 @@ class Ball:
         self.col=col
         self.speedx,self.speedy = speedx,speedy
         balls.append(self)
+    
+"""Скорость затухает по экспоненте, нужно изменить физику трения"""
     def update(self):
         self.y += self.speedy
         self.x += self.speedx
@@ -19,10 +23,10 @@ class Ball:
             self.speedx = -self.speedx
         if self.y-rad<(HEIDTH//2-heit//2) or self.y+rad>(HEIDTH//2+heit//2):
             self.speedy = -self.speedy
-        if abs(self.speedx)>=0.015:
+        if abs(self.speedx)>=0.03:
             self.speedx -=0.01*self.speedx
         else: self.speedx=0
-        if abs(self.speedy) >= 0.015:
+        if abs(self.speedy) >= 0.03:
             self.speedy -= 0.01 * self.speedy
         else: self.speedy = 0
     def draw(self):
@@ -51,23 +55,26 @@ clock = pygame.time.Clock()
 pygame.mouse.set_visible(1)
 k = 0
 for i in range(0,5):
-    px = 330 + 31*i
-    balls[i]=Ball(px,300,0,0,(randint(0,200),randint(0,200),randint(0,200)))
+    px = 330 + 32*i
+    balls[i]=Ball(px,300,0,0,(randint(40,200),random.choice([randint(0,75),randint(115,255)]),randint(40,200)))
 for i in range(5,9):
-    px = 345 + 31*(i-5)
-    balls[i]=Ball(px,329,0,0,(randint(0,200),randint(0,200),randint(0,200)))
+    px = 345 + 32*(i-5)
+    balls[i]=Ball(px,330,0,0,(randint(40,200),random.choice([randint(0,75),randint(115,255)]),randint(40,200)))
 for i in range(9,12):
-    px = 360 + 31*(i-9)
-    balls[i] = Ball(px, 358, 0, 0,(randint(0,200),randint(0,200),randint(0,200)))
+    px = 360 + 32*(i-9)
+    balls[i] = Ball(px, 360, 0, 0,(randint(40,200),random.choice([randint(0,75),randint(115,255)]),randint(40,200)))
 for i in range(12, 14):
-    px = 375 + 31 * (i - 12)
-    balls[i] = Ball(px, 387, 0, 0,(randint(0,200),randint(0,200),randint(0,200)))
+    px = 375 + 32 * (i - 12)
+    balls[i] = Ball(px, 390, 0, 0,(randint(40,200),random.choice([randint(0,75),randint(115,255)]),randint(40,200)))
 for i in range(14,15):
-    px = 390 + 31*(i-14)
-    balls[i]=Ball(px,416,0,0,(randint(0,200),randint(0,200),randint(0,200)))
+    px = 390 + 32*(i-14)
+    balls[i]=Ball(px,420,0,0,(randint(40,200),random.choice([randint(0,75),randint(115,255)]),randint(40,200)))
 for i in range(15,16):
     balls[i]=Ball(390,650,0,0,(255,255,255))
-l = -1
+beat_next = len(balls)-1
+l = len(balls)-1
+mark = False
+scored = False
 
 play = True
 while play:
@@ -75,21 +82,48 @@ while play:
         if event.type == pygame.QUIT:
             play = False
     window.fill(pygame.Color('black'))
+    for i in range(len(balls)):
+        if balls[i].speedx != 0:
+            flag_stop = False
+            break
+        else:
+            flag_stop = True
+    if flag_stop and (balls[-1].x != 390 and balls[-1].y!=650) and not(mark):
+        beat_next = l
+        dist = []
+        print(scored)
+        balls[beat_next].col = (randint(40,200),random.choice([randint(0,75),randint(115,255)]),randint(40,200))
+        for i in range(len(balls)):
+            r = 10000
+            for j in range(0,i):
+                r = min(((balls[i].x-balls[j].x)**2+(balls[i].y-balls[j].y)**2)**0.5,r)
+            for j in range(i+1,len(balls)):
+                r = min(((balls[i].x-balls[j].x)**2+(balls[i].y-balls[j].y)**2)**0.5,r)
+            dist.append(r)
+        rmax = max(dist)
+
+        beat_next = dist.index(rmax)
+        l = beat_next
+        balls[beat_next].col = (255,255,255)
+        mark = True
+
+
     if k:
         Ball(200,300,1,0.5)
         Ball(600, 700, 0, -0.55)
         k = 0
-    for ball in balls:
-        ball.update()
+
     b1, b2, b3 = pygame.mouse.get_pressed()
-    if b1:
+    if b1 and flag_stop:
         mx,my = pygame.mouse.get_pos()
         balls[l].speedx = (mx-balls[l].x)*0.03
         balls[l].speedy = (my - balls[l].y) * 0.03
+        mark = False
     for ball in balls:
         for target in targets:
-            if (ball.x-target.x)**2+(ball.y-target.y)**2<=27**2:
+            if (ball.x-target.x)**2+(ball.y-target.y)**2<=27**2 and ball!=balls[l]:
                 balls.remove(ball)
+                l-=1
     for i in range(0,len(balls)):
         for j in range(i+1,len(balls)):
             if (balls[i].x-balls[j].x)**2+(balls[i].y-balls[j].y)**2<=4*rad**2:
@@ -114,11 +148,18 @@ while play:
                     balls[i].speedy = -v1y
                     balls[j].speedx = v2x
                     balls[j].speedy = -v2y
+    for ball in balls:
+        ball.update()
     pygame.draw.rect(window,(21, 94, 20),(WIDTH//2-widt//2,HEIDTH//2-heit//2,widt,heit))
     for target in targets:
         target.update()
     for target in targets:
         target.draw()
+    for ball in balls:
+        ball.draw()
+    pygame.display.update()
+    clock.tick(FPS)
+pygame.quit()
     for ball in balls:
         ball.draw()
     pygame.display.update()
