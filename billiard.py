@@ -19,6 +19,7 @@ class Ball:
         self.speed = (self.speedx ** 2 + self.speedy ** 2) ** 0.5
         balls.append(self)
 
+    """Движение шара за кадр прорисовки"""
     def update(self):
         self.y += self.speedy
         self.x += self.speedx
@@ -51,6 +52,8 @@ class Target:
         pygame.draw.circle(window, (100, 200, 50), (self.x, self.y), 33)
 
 
+
+"""Прорисовка поля и лунок"""
 balls = []
 targets = []
 targets.append(Target(WIDTH // 2 - widt // 2 + 5, HEIDTH // 2))
@@ -64,6 +67,9 @@ window = pygame.display.set_mode((WIDTH, HEIDTH))
 clock = pygame.time.Clock()
 pygame.mouse.set_visible(1)
 k = 0
+
+
+"""Начальное расположение шаров"""
 for i in range(0, 5):
     px = 330 + 32 * i
     balls[i] = Ball(px, 300, 0, 0,
@@ -107,6 +113,7 @@ while play:
         if event.type == pygame.QUIT:
             play = False
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            """Удар битком"""
             b1, b2, b3 = pygame.mouse.get_pressed()
             if b1 and flag_stop and event.button == 1:
                 mx, my = pygame.mouse.get_pos()
@@ -114,6 +121,7 @@ while play:
                 balls[l].speedy = (my - balls[l].y) * 0.03
                 mark = False
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3 :
+            """Выбор нового битка в начале следующего хода"""
             if flag_stop and (balls[-1].x != 390 and balls[-1].y != 650) and not (mark):
                 beat_next = l
                 balls[beat_next].col = (
@@ -121,9 +129,6 @@ while play:
 
                 mx, my = pygame.mouse.get_pos()
                 beat_next = l
-
-                balls[beat_next].col = (
-                randint(40, 200), random.choice([randint(0, 75), randint(115, 255)]), randint(40, 200))
                 for i in range(len(balls)):
                     if (balls[i].x - mx) ** 2 + (balls[i].y - my) ** 2 <= rad ** 2:
                         beat_next = i
@@ -134,12 +139,14 @@ while play:
                 mark = True
 
 
-
+    """Падение шара в лунку"""
     for ball in balls:
         for target in targets:
             if (ball.x - target.x) ** 2 + (ball.y - target.y) ** 2 <= 27 ** 2 and ball != balls[l]:
                 balls.remove(ball)
                 l -= 1
+                
+    """Столкновение двух шаров"""
     for i in range(0, len(balls)):
         for j in range(i + 1, len(balls)):
             if (balls[i].x - balls[j].x) ** 2 + (balls[i].y - balls[j].y) ** 2 <= 4 * rad ** 2:
@@ -149,21 +156,32 @@ while play:
                 v2x, v2y = balls[j].speedx, balls[j].speedy
                 v1xcm, v1ycm = 0.5 * v1x - 0.5 * v2x, 0.5 * v1y - 0.5 * v2y
                 v2xcm, v2ycm = 0.5 * v2x - 0.5 * v1x, 0.5 * v2y - 0.5 * v1y
-                if nx != 0 and ny != 0:
-                    balls[i].speedx = ((nx / ny * ay + ax) * v1xcm + 2 * v1ycm * ay) / (nx / ny * ay - ax) + 0.5 * (v1x + v2x)
-                    balls[i].speedy = ((ny / nx * ax + ay) * v1ycm + 2 * v1xcm * ax) / (ny / nx * ax - ay) + 0.5 * (v1y + v2y)
-                    balls[j].speedx = ((nx / ny * ay + ax) * v2xcm + 2 * v2ycm * ay) / (nx / ny * ay - ax) + 0.5 * (v1x + v2x)
-                    balls[j].speedy = ((ny / nx * ax + ay) * v2ycm + 2 * v2xcm * ax) / (ny / nx * ax - ay) + 0.5 * (v1y + v2y)
-                elif nx == 0:
-                    balls[i].speedx = -v1x
-                    balls[i].speedy = v1y
-                    balls[j].speedx = -v2x
-                    balls[j].speedy = v2y
-                elif ny == 0:
-                    balls[i].speedx = v1x
-                    balls[i].speedy = -v1y
-                    balls[j].speedx = v2x
-                    balls[j].speedy = -v2y
+
+                #Защита от залипания
+                if (((v1x - v2x)**2 + (v1y - v2y)**2)**0.5 < 10):
+                    balls[i].x += ax/100
+                    balls[i].y += ay/100
+                    balls[j].x += -ay/100
+                    balls[j].y += -ay/100
+
+                if (balls[i].x - balls[j].x) ** 2 + (balls[i].y - balls[j].y) ** 2 <= 4 * rad ** 2 :
+                    if nx != 0 and ny != 0:
+                        balls[i].speedx = ((nx / ny * ay + ax) * v1xcm + 2 * v1ycm * ay) / (nx / ny * ay - ax) + 0.5 * (v1x + v2x)
+                        balls[i].speedy = ((ny / nx * ax + ay) * v1ycm + 2 * v1xcm * ax) / (ny / nx * ax - ay) + 0.5 * (v1y + v2y)
+                        balls[j].speedx = ((nx / ny * ay + ax) * v2xcm + 2 * v2ycm * ay) / (nx / ny * ay - ax) + 0.5 * (v1x + v2x)
+                        balls[j].speedy = ((ny / nx * ax + ay) * v2ycm + 2 * v2xcm * ax) / (ny / nx * ax - ay) + 0.5 * (v1y + v2y)
+                    elif nx == 0:
+                        balls[i].speedx = -v1x
+                        balls[i].speedy = v1y
+                        balls[j].speedx = -v2x
+                        balls[j].speedy = v2y
+                    elif ny == 0:
+                        balls[i].speedx = v1x
+                        balls[i].speedy = -v1y
+                        balls[j].speedx = v2x
+                        balls[j].speedy = -v2y
+                        
+                        
     for ball in balls:
         ball.update()
     pygame.draw.rect(window, (21, 94, 20), (WIDTH // 2 - widt // 2, HEIDTH // 2 - heit // 2, widt, heit))
@@ -179,8 +197,4 @@ while play:
     pygame.display.update()
     clock.tick(FPS)
 pygame.quit()
-    for ball in balls:
-        ball.draw()
-    pygame.display.update()
-    clock.tick(FPS)
-pygame.quit()
+
